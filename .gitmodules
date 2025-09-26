@@ -1,0 +1,3 @@
+[submodule "electrix-api"]
+	path = electrix-api
+	url = git@github.com:secha-project/electrix-api.git
