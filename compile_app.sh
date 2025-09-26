@@ -3,8 +3,8 @@
 set -e
 
 rm -rf build
-cmake -S . -B build
+mkdir -p build
 cd build
-make clean
+cmake ..
 make
 cd ..
