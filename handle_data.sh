@@ -33,14 +33,14 @@ bash run_app.sh --local ${TARGET_DATE} ${LOCAL_CSV_PATH}
 # Copy CSV files to remote server
 scp \
     -i ${LOCAL_SSH_PRIVATE_KEY_PATH} \
-    -P ${SERVER_PORT} \
+    -p ${SERVER_PORT} \
     ${LOCAL_CSV_PATH}/${TARGET_DATE}_*.csv \
     ${SERVER_USERNAME}@${SERVER_IP}:${SERVER_CSV_PATH}
 
 # Run data transformation on remote server
 ssh \
     -i ${LOCAL_SSH_PRIVATE_KEY_PATH} \
-    -P ${SERVER_PORT} \
+    -p ${SERVER_PORT} \
     ${SERVER_USERNAME}@${SERVER_IP} \
     "cd ${SERVER_DATA_TRANSFORMER_PATH} && SPARK_HOME=${SERVER_SPARK_HOME} ./run_app.sh ${TARGET_DATE} ${SERVER_CSV_PATH} ${SERVER_DELTA_PATH}"
 
