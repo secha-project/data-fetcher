@@ -33,7 +33,7 @@ bash run_app.sh --local ${TARGET_DATE} ${LOCAL_CSV_PATH}
 # Copy CSV files to remote server
 scp \
     -i ${LOCAL_SSH_PRIVATE_KEY_PATH} \
-    -p ${SERVER_PORT} \
+    -P ${SERVER_PORT} \
     ${LOCAL_CSV_PATH}/${TARGET_DATE}_*.csv \
     ${SERVER_USERNAME}@${SERVER_IP}:${SERVER_CSV_PATH}
 
