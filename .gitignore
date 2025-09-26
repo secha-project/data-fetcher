@@ -77,4 +77,4 @@ CMakeUserPresets.json
 data/*
 build/*
 .env
-screen-log
+screen.log
