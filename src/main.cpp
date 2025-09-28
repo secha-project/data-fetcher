@@ -6,6 +6,8 @@
 
 const int MIN_SLEEP_DURATION_MINUTES = 1;
 const int TARGET_HOUR = 4;
+const int MAX_FAILS = 5;
+const int FAIL_SLEEP_DURATION_MINUTES = 5;
 
 
 std::string tmToDateString(std::tm& inputTime)
@@ -85,18 +87,39 @@ void printErrorMessage(const std::string& date) {
     std::cerr << "\nError executing script for date " << date << ". Exiting." << std::endl;
 }
 
+bool handleError(const std::string currentDate, int currentFailCount)
+{
+    if (currentFailCount > MAX_FAILS)
+    {
+        printErrorMessage(currentDate);
+        return true;
+    }
+
+    std::cout << "\nTrying again in " << FAIL_SLEEP_DURATION_MINUTES << " minute(s)..." << std::endl;
+    std::this_thread::sleep_for(std::chrono::minutes(FAIL_SLEEP_DURATION_MINUTES));
+    return false;
+}
+
 
 int mainLoop(const std::string& initialDate)
 {
     std::string currentDate = initialDate;
+    int failCount = 0;
 
     // Initial catch-up loop to process any missed dates
     while (currentDate <= getCurrentMaximumDate()) {
+        failCount = 0;
         auto returnCode = executeScriptWithDate(currentDate);
         if (returnCode != 0) {
-            printErrorMessage(currentDate);
-            return returnCode;
+            ++failCount;
+            if (handleError(currentDate, failCount))
+            {
+                // too many fails in a row
+                return returnCode;
+            }
+            continue;
         }
+
         currentDate = getNextDate(currentDate);
         std::cout << "\nWaiting for " << MIN_SLEEP_DURATION_MINUTES << " minute(s) before next execution..." << std::endl;
         std::this_thread::sleep_for(std::chrono::minutes(MIN_SLEEP_DURATION_MINUTES));
@@ -104,6 +127,7 @@ int mainLoop(const std::string& initialDate)
 
     // Main loop to execute the script at 4 AM every day
     while (true) {
+        failCount = 0;
         auto sleepDuration = getSleepDuration();
         std::cout << "\nSleeping for "
                   << std::chrono::duration_cast<std::chrono::hours>(sleepDuration).count() << " hours and "
@@ -114,9 +138,15 @@ int mainLoop(const std::string& initialDate)
 
         auto returnCode = executeScriptWithDate(currentDate);
         if (returnCode != 0) {
-            printErrorMessage(currentDate);
-            return returnCode;
+            ++failCount;
+            if (handleError(currentDate, failCount))
+            {
+                // too many fails in a row
+                return returnCode;
+            }
+            continue;
         }
+
         currentDate = getNextDate(currentDate);
     }
 
