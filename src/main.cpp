@@ -4,9 +4,17 @@
 #include <sstream>
 #include <thread>
 
-
 const int MIN_SLEEP_DURATION_MINUTES = 1;
 const int TARGET_HOUR = 4;
+
+
+std::string tmToDateString(std::tm& inputTime)
+{
+    std::mktime(&inputTime);
+    std::ostringstream oss;
+    oss << std::put_time(&inputTime, "%Y-%m-%d");
+    return oss.str();
+}
 
 // Function to get the next date given a current date in YYYY-MM-DD format
 std::string getNextDate(const std::string& date)
@@ -16,11 +24,7 @@ std::string getNextDate(const std::string& date)
     ss >> std::get_time(&tm, "%Y-%m-%d");
 
     tm.tm_mday += 1;
-    std::mktime(&tm);
-
-    std::ostringstream oss;
-    oss << std::put_time(&tm, "%Y-%m-%d");
-    return oss.str();
+    return tmToDateString(tm);
 }
 
 
@@ -42,11 +46,7 @@ std::string getCurrentMaximumDate()
     {
         now_tm.tm_mday -= 1;
     }
-
-    // Format the date as YYYY-MM-DD
-    std::ostringstream oss;
-    oss << std::put_time(&now_tm, "%Y-%m-%d");
-    return oss.str();
+    return tmToDateString(now_tm);
 }
 
 
