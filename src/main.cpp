@@ -10,6 +10,13 @@ const int MAX_FAILS = 5;
 const int FAIL_SLEEP_DURATION_MINUTES = 5;
 
 
+enum class ErrorType
+{
+    NON_CRITICAL,
+    CRITICAL
+};
+
+
 std::string tmToDateString(std::tm& inputTime)
 {
     std::mktime(&inputTime);
@@ -87,67 +94,53 @@ void printErrorMessage(const std::string& date) {
     std::cerr << "\nError executing script for date " << date << ". Exiting." << std::endl;
 }
 
-bool handleError(const std::string currentDate, int currentFailCount)
+ErrorType handleError(const std::string currentDate, int currentFailCount)
 {
     if (currentFailCount > MAX_FAILS)
     {
         printErrorMessage(currentDate);
-        return true;
+        return ErrorType::CRITICAL;
     }
 
     std::cout << "\nTrying again in " << FAIL_SLEEP_DURATION_MINUTES << " minute(s)..." << std::endl;
     std::this_thread::sleep_for(std::chrono::minutes(FAIL_SLEEP_DURATION_MINUTES));
-    return false;
+    return ErrorType::NON_CRITICAL;
 }
 
 
 int mainLoop(const std::string& initialDate)
 {
     std::string currentDate = initialDate;
-    int failCount = 0;
 
-    // Initial catch-up loop to process any missed dates
-    while (currentDate <= getCurrentMaximumDate()) {
-        failCount = 0;
-        auto returnCode = executeScriptWithDate(currentDate);
-        if (returnCode != 0) {
-            ++failCount;
-            if (handleError(currentDate, failCount))
-            {
-                // too many fails in a row
-                return returnCode;
-            }
-            continue;
-        }
-
-        currentDate = getNextDate(currentDate);
-        std::cout << "\nWaiting for " << MIN_SLEEP_DURATION_MINUTES << " minute(s) before next execution..." << std::endl;
-        std::this_thread::sleep_for(std::chrono::minutes(MIN_SLEEP_DURATION_MINUTES));
-    }
-
-    // Main loop to execute the script at 4 AM every day
+    // Main loop to first catch-up to current data and then to execute the script at 4 AM every day
     while (true) {
-        failCount = 0;
-        auto sleepDuration = getSleepDuration();
-        std::cout << "\nSleeping for "
-                  << std::chrono::duration_cast<std::chrono::hours>(sleepDuration).count() << " hours and "
-                  << (std::chrono::duration_cast<std::chrono::minutes>(sleepDuration).count() % 60) << " minutes until next " << TARGET_HOUR << " AM."
-                  << std::endl;
-
-        std::this_thread::sleep_for(sleepDuration);
+        int failCount = 0;
 
         auto returnCode = executeScriptWithDate(currentDate);
-        if (returnCode != 0) {
+        while (returnCode != 0 && handleError(currentDate, failCount) == ErrorType::NON_CRITICAL) {
             ++failCount;
-            if (handleError(currentDate, failCount))
-            {
-                // too many fails in a row
-                return returnCode;
-            }
-            continue;
+            returnCode = executeScriptWithDate(currentDate);
+        }
+        if (returnCode != 0) {
+            // too many fails in a row
+            return returnCode;
         }
 
         currentDate = getNextDate(currentDate);
+        if (currentDate > getCurrentMaximumDate())
+        {
+            auto sleepDuration = getSleepDuration();
+            std::cout << "\nSleeping for "
+                    << std::chrono::duration_cast<std::chrono::hours>(sleepDuration).count() << " hours and "
+                    << (std::chrono::duration_cast<std::chrono::minutes>(sleepDuration).count() % 60) << " minutes until next " << TARGET_HOUR << " AM."
+                    << std::endl;
+            std::this_thread::sleep_for(sleepDuration);
+        }
+        else
+        {
+            std::cout << "\nWaiting for " << MIN_SLEEP_DURATION_MINUTES << " minute(s) before next execution..." << std::endl;
+            std::this_thread::sleep_for(std::chrono::minutes(MIN_SLEEP_DURATION_MINUTES));
+        }
     }
 
     return 0;
